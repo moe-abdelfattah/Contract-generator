@@ -2,13 +2,12 @@
 import os
 from flask import Flask, jsonify, render_template
 import google.generativeai as genai
+from google.generativeai.types import HarmCategory, HarmBlockThreshold
 
 # Initialize the Flask application
 app = Flask(__name__)
 
 # --- IMPORTANT: Set up your API Key ---
-# Before running, set your API key in your terminal or deployment service:
-# export GOOGLE_API_KEY='your_google_api_key_here'
 try:
     genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
     model = genai.GenerativeModel('gemini-1.5-pro')
@@ -110,7 +109,7 @@ Use numbered lists/bullets where it enhances clarity.
 Keep RTL punctuation natural; avoid mixing English unless required for clarity in tables (prefer Arabic labels).
 CONSISTENCY & VALIDATION RULES
 Payment schedule sums to exact contract value.
-Percentages/retentions/penaltalities are consistent across sections and annexes.
+Percentages/retentions/penalties are consistent across sections and annexes.
 Acceptance stages (if applicable) appear in both body and timeline annex.
 SLAs/KPIs (if applicable) appear in body and are enforced by penalties annex.
 The day of week matches the Gregorian date you used.
@@ -151,8 +150,17 @@ def generate_contract_api():
         return jsonify({'error': 'Server is not configured with an API key.'}), 500
     
     try:
-        # Call the Gemini API with your secret prompt
-        response = model.generate_content(THE_SECRET_PROMPT)
+        # --- THIS IS THE MODIFIED PART ---
+        # We are adding safety_settings to tell the model to be less strict.
+        response = model.generate_content(
+            THE_SECRET_PROMPT,
+            safety_settings={
+                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+            }
+        )
         contract_text = response.text
         return jsonify({'contract_text': contract_text})
     except Exception as e:
