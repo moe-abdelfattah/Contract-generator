@@ -11,213 +11,132 @@ app = Flask(__name__)
 # export GOOGLE_API_KEY='your_google_api_key_here'
 try:
     genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel('gemini-1.5-pro')
 except KeyError:
     print("🔴 Critical Error: GOOGLE_API_KEY environment variable not set.")
     model = None
 
-# --- Your Secret Contract-Generating Prompt ---
+# --- Your New, Detailed Saudi Arabian Contract Prompt ---
 THE_SECRET_PROMPT = """
-{
-  "promptDetails": {
-    "title": "Deep Synthesis Dynamic Contract Generator with Full Annex Generation (Saudi Arabia)",
-    "version": "13.0",
-    "objective": "To programmatically generate a dataset of 125,000 fully synthetic, unique, and complex Arabic contracts. Each contract must be at least 5 pages long, professionally formatted in a right-to-left (RTL) document structure using Markdown with styled HTML tables, and include fully auto-populated, unique variables and annexes."
-  },
-  "instructions": {
-    "roleAndContext": "You are an advanced legal AI specializing in the deep synthesis of complex Saudi Arabian contracts. Your task is to act as a 'Dynamic Contract Generator'. You will receive this JSON prompt and generate a single, complete, and unique contract as a clean, right-to-left formatted document.",
-    "coreDirectives": [
-      "**Absolute Uniqueness & Auto-Population Required:** Every single variable and placeholder field within the final contract text, including all names, project titles, financial figures, dates (Hijri and Gregorian), and signature blocks, MUST be fully and uniquely auto-populated by you. No square brackets or placeholders [like this] should remain in the final output.",
-      "**Mandatory Length and Detail:** The generated contract's content must be substantial enough to equate to a minimum of 5 standard pages. This is achieved through a deeply detailed 'Scope of Work' and fully generated Annexes.",
-      "**Full Annex Generation:** Do not just describe the annexes. You must generate the actual content of the mandatory annexes (A, B, C, D) as detailed, structured documents within the main contract output.",
-      "**RTL Document Structure:** The entire final output must be wrapped in a single HTML container `<div dir='rtl'>...</div>` to ensure proper right-to-left text alignment for Arabic. The content inside this container will be Markdown with embedded HTML for tables.",
-      "**Final Output is Document Only:** Your entire response to this prompt must be the single `<div>` block containing the complete contract. Do not wrap the output in a JSON object or include any other metadata outside of this container."
-    ]
-  },
-  "knowledgeBase": {
-    "description": "A detailed, structured corpus of analyzed Saudi contract templates. This is your primary source for style, structure, and legal terminology. You will retrieve one template as a base for each generation.",
-    "templates": [
-        {
-        "id": "SA_GOV_CONSULTING_01",
-        "sourceFileName": "نموذج عقد (خدمات استشارية).docx",
-        "type": "Official Government - Consulting Services",
-        "keyTerminology": ["الجهة الحكومية", "المتعاقد", "نظام المنافسات والمشتريات الحكومية"],
-        "structuralNotes": "Follows the official two-part government format: a short 'Basic Document' (وثيقة العقد الأساسية) followed by extensive multi-section 'Conditions' (شروط العقد).",
-        "keyClauses": [
-          {"clauseName": "المحتوى المحلي", "description": "Mandatory clause referencing the Local Content and SMEs Authority regulations, requiring preference for national products."},
-          {"clauseName": "حقوق الملكية الفكرية", "description": "Specifies that all IP generated under the contract becomes the exclusive property of the Government Entity."},
-          {"clauseName": "تعارض المصالح", "description": "Requires the contractor to avoid and disclose any potential conflicts of interest."},
-          {"clauseName": "السرية وحماية المعلومات", "description": "Imposes strict confidentiality obligations on the contractor regarding all project and government data."}
-        ],
-        "uniqueMechanisms": "Standard direct-award contract for a defined scope of services."
-      },
-      {
-        "id": "SA_GOV_GENERAL_SERVICES_02",
-        "sourceFileName": "نموذج عقد (خدمات عام).docx",
-        "type": "Official Government - General Services",
-        "keyTerminology": ["الجهة الحكومية", "المتعاقد"],
-        "structuralNotes": "Follows the official two-part government format.",
-        "keyClauses": [
-          {"clauseName": "فريق العمل", "description": "Specifies requirements for contractor's personnel."},
-          {"clauseName": "الأصناف والمواد", "description": "Defines the standards and specifications for any materials used in delivering the service."},
-          {"clauseName": "المعدات", "description": "Outlines the requirements for equipment to be used by the contractor."}
-        ],
-        "uniqueMechanisms": "Standard direct-award contract suitable for non-consulting services like cleaning, security, or general maintenance."
-      },
-      {
-        "id": "SA_GOV_MILITARY_SUPPLY_03",
-        "sourceFileName": "نموذج عقد التوريد عسكري.docx",
-        "type": "Official Government - Military Supply",
-        "keyTerminology": ["الجهة الحكومية", "المتعاقد", "الهيئة العامة للصناعات العسكرية"],
-        "structuralNotes": "A highly specialized two-part government procurement contract.",
-        "keyClauses": [
-          {"clauseName": "رخص التصدير", "description": "Makes the contractor responsible for obtaining all necessary export licenses from the country of origin."},
-          {"clauseName": "المشاركة الصناعية", "description": "Mandates an industrial participation agreement with the General Authority for Military Industries (GAMI) to promote local industry."},
-          {"clauseName": "التعبئة والتغليف والتوثيق", "description": "Contains highly specific requirements for military-grade packaging, labeling, and shipping documentation."}
-        ],
-        "uniqueMechanisms": "Features a mandatory multi-stage testing and acceptance protocol: Factory Acceptance Tests (FAT), Site Acceptance Tests (SAT), and User Acceptance Tests (UAT), each being a prerequisite for the next stage."
-      },
-      {
-        "id": "PVT_COMMERCIAL_SUPPLY_04",
-        "sourceFileName": "نموذج-عقد-توريد-أثاث-مكتبي-موقع-النموذج.docx",
-        "type": "Simple Private Commercial - Goods Supply",
-        "keyTerminology": ["المشتري", "البائع"],
-        "structuralNotes": "Simple, linear contract structure without complex sections. Suitable for basic B2B sales.",
-        "keyClauses": [
-          {"clauseName": "سعر التوريد والدفع", "description": "Basic clause outlining total price and payment terms (e.g., advance payment, final payment)."},
-          {"clauseName": "التسليم", "description": "Specifies delivery location and dates."},
-          {"clauseName": "الضمان والصيانة", "description": "Provides a basic warranty period for the supplied goods."}
-        ],
-        "uniqueMechanisms": "None, it's a straightforward sales contract."
-      },
-      {
-        "id": "SA_GOV_CONSTRUCTION_GENERAL_11",
-        "sourceFileName": "نموذج عقد (إنشاءات عامة).docx",
-        "type": "Official Government - General Construction",
-        "keyTerminology": ["الجهة الحكومية", "المقاول", "المهندس"],
-        "structuralNotes": "The standard official template for general building construction projects, following the two-part government format.",
-        "keyClauses": [
-          {"clauseName": "تسليم الموقع", "description": "Procedures for the official handover of the construction site to the contractor."},
-          {"clauseName": "الاستلام الابتدائي والنهائي", "description": "A two-stage acceptance process: preliminary acceptance to start the defects liability period, and final acceptance after its completion."},
-          {"clauseName": "المسؤولية عن العيوب", "description": "Defines the contractor's responsibility to remedy any defects that appear during the defect liability period."},
-          {"clauseName": "التأمين", "description": "Requires specific insurance policies, typically Contractor's All-Risk (CAR) and Professional Indemnity."}
-        ],
-        "uniqueMechanisms": "Relies heavily on the role of 'The Engineer' (المهندس) as the government's representative for technical supervision and approvals."
-      },
-      {
-        "id": "SA_GOV_OM_12",
-        "sourceFileName": "نموذج عقد (التشغيل والصيانة) (1).docx",
-        "type": "Official Government - Operation & Maintenance",
-        "keyTerminology": ["الجهة الحكومية", "المتعاقد"],
-        "structuralNotes": "Official two-part government contract tailored for long-term O&M services.",
-        "keyClauses": [
-          {"clauseName": "مؤشرات الأداء الرئيسية (KPIs)", "description": "Defines the measurable metrics used to evaluate the contractor's performance."},
-          {"clauseName": "اتفاقية مستوى الخدمة (SLA)", "description": "Specifies the required service levels, response times, and uptime for the maintained assets."},
-          {"clauseName": "جدول الصيانة الوقائية", "description": "Requires the contractor to submit and adhere to a detailed schedule for preventive maintenance activities."}
-        ],
-        "uniqueMechanisms": "Payment is often tied directly to the achievement of KPIs defined in the SLA, with penalties for non-compliance."
-      },
-      {
-        "id": "SA_FRAMEWORK_SUPPLY_07",
-        "sourceFileName": "نموذج اتفاقية إطارية (توريد عام).docx",
-        "type": "Framework Agreement - General Supply",
-        "keyTerminology": ["الجهة الحكومية", "المتعاقد"],
-        "structuralNotes": "An official government agreement that establishes terms for future purchases, not a contract for a specific one-time purchase.",
-        "keyClauses": [
-          {"clauseName": "مدة الاتفاقية", "description": "Defines the period during which the framework is valid (e.g., 3 years)."},
-          {"clauseName": "الحد الأعلى للاتفاقية", "description": "Specifies the maximum total value of all purchase orders that can be issued under the agreement."}
-        ],
-        "uniqueMechanisms": "The core mechanism is that no goods are procured upon signing. Instead, legally binding 'Purchase Orders' (أوامر الشراء) are issued against the pre-agreed prices and terms as needed."
-      },
-      {
-        "id": "SA_GOV_ENG_SUPERVISION_13",
-        "sourceFileName": "نموذج عقد (الخدمات الهندسية – إشراف).docx",
-        "type": "Official Government - Engineering Supervision Services",
-        "keyTerminology": ["الجهة الحكومية", "الاستشاري"],
-        "structuralNotes": "Official two-part government format for specialized professional services.",
-        "keyClauses": [
-          {"clauseName": "صلاحيات ومسؤوليات الاستشاري", "description": "Defines the consultant's authority to inspect works, approve materials, and issue instructions to the construction contractor on behalf of the government."},
-          {"clauseName": "المسؤولية المهنية", "description": "Specifies the consultant's liability for professional negligence (standard of care)."}
-        ],
-        "uniqueMechanisms": "The consultant acts as an intermediary and technical authority between the government client and the construction contractor."
-      }
-    ]
-  },
-  "dynamicVariableGeneration": {
-    "description": "Auto-generate all variables to be 100% unique for each contract generation.",
-    "steps": [
-      {
-        "step": 1,
-        "action": "Generate Scenario & Base",
-        "instruction": "Randomly select a `baseTemplateId` from the knowledgeBase. Based on the selection, generate a plausible, unique, one-sentence `contractScenario`."
-      },
-      {
-        "step": 2,
-        "action": "Generate Unique Parties",
-        "instruction": "Create two unique parties with full, synthetic details (names, legal types, addresses, representative names, representative titles). Ensure names are plausible for Saudi Arabia."
-      },
-      {
-        "step": 3,
-        "action": "Generate Unique Project Details",
-        "instruction": "Create a unique, descriptive `projectName`. Generate a 2-3 sentence `projectBackground` for the preamble."
-      },
-      {
-        "step": 4,
-        "action": "Generate Dynamic Financials",
-        "instruction": "Generate a unique `contractValueNumeric` appropriate for the scenario. Generate random but plausible percentages for guarantees, advance payments, and penalties."
-      },
-      {
-        "step": 5,
-        "action": "Generate Dual-Calendar Dates & Location",
-        "instruction": "Generate a random but valid future date. This date MUST be represented in two corresponding formats: `contractDateHijri` (e.g., '25 ربيع الآخر 1447هـ') and `contractDateGregorian` (e.g., '17 September 2025'). Generate the `dayOfWeek` (e.g., 'يوم الأربعاء'). Select a random major city in Saudi Arabia for `signingLocation`."
-      },
-      {
-        "step": 6,
-        "action": "Generate Dynamic Styling Variable",
-        "instruction": "Generate a unique `tableHeaderColor` for this contract. This must be a standard HTML hex color code (e.g., '#4A90E2', '#D9534F', '#5CB85C'). Ensure the chosen color provides good contrast with white text for readability."
-      }
-    ]
-  },
-  "generationLogic": {
-    "description": "Core rules for constructing the contract's content and structure to ensure detail and uniqueness.",
-    "structure": {
-      "rules": [
-        "Adopt the fundamental structure of the selected `baseTemplateId`, paying close attention to the `structuralNotes`.",
-        "Dynamically set the number of main sections between 12 and 18 for government contracts and 8-12 for commercial ones.",
-        "Synthesize unique, descriptive section titles based on the `keyClauses` of the selected template.",
-        "Logically reorder secondary sections between generations to ensure structural uniqueness."
-      ]
-    },
-    "content": {
-      "rules": [
-        {
-          "section": "Preamble and Signatures",
-          "instruction": "The preamble (الديباجة) must be populated with the full party details and must include the auto-generated `dayOfWeek`, `contractDateHijri`, and `contractDateGregorian`. The signature blocks must be populated with the unique representative names and titles."
-        },
-        {
-          "section": "Scope of Work (`نطاق العمل`)",
-          "instruction": "**This section is the most critical for uniqueness and length and must be a minimum of 600 words.** Synthesize a detailed scope structured into **4-6 distinct phases**. Each phase must contain a bulleted list of **5-10 specific, unique, and technically plausible activities**. Include a dedicated subsection for **'المخرجات الرئيسية' (Key Deliverables)**, listing and describing at least 5-8 unique deliverables."
-        },
-        {
-          "section": "Specifications (`المواصفات`)",
-          "instruction": "Create highly detailed, synthetic specification tables relevant to the scope. **Use HTML table syntax.** For personnel (`فريق العمل`), the table must include: Role, Qualification, Certifications, Experience, and Responsibilities for 4-6 unique roles. The table header must be styled using the generated `tableHeaderColor`."
-        },
-        {
-          "section": "Annexes (`الملاحق`)",
-          "instruction": "**Generate the full, detailed content for the mandatory annexes (A, B, C, D) as complete documents. All tables herein must be generated using HTML syntax with headers styled using the `tableHeaderColor`.**\n\n* **الملحق (أ) - نطاق العمل والمواصفات الفنية:** Reiterate the full Scope of Work and add a subsection with 3-5 unique, specific technical requirements or standards.\n\n* **الملحق (ب) - الجدول الزمني التفصيلي:** Generate a detailed project timeline in an HTML table. The table must have columns for Phase, Milestone, Deliverable, Estimated Completion Date (in both Hijri and Gregorian), and Responsibilities. It must contain at least 10-15 unique milestones.\n\n* **الملحق (ج) - جدول الغرامات والجزاءات:** Generate a detailed HTML table of penalties with columns for Violation Type, Description, Penalty Calculation, and Max Penalty. Populate with at least 5-7 unique, specific violations.\n\n* **الملحق (د) - جدول الأسعار والدفعات:** Generate a detailed price and payment schedule in an HTML table. The line items must correspond to the Scope of Work, and the total value must equal the `contractValueNumeric`. \n\n* **Optional Annexes:** Randomly include 1-2 optional annexes and generate a substantial paragraph or structured list outlining their content."
-        }
-      ]
-    }
-  },
-  "outputFormatting": {
-    "finalOutputFormat": "HTML-wrapped Markdown",
-    "description": "The final output must be a single block of text. The entire document, from the title to the final annex, must be enclosed within a single HTML `<div>` tag with right-to-left directionality (`<div dir='rtl'>...</div>`). This ensures correct formatting for the Arabic language. The content inside the div should be Markdown with embedded HTML for tables.",
-    "language": "Arabic",
-    "styling": "Inside the RTL div, strictly adhere to Markdown formatting for prose and headings (#, ##, ###). All tables MUST be generated as HTML tables, and their headers (`<thead>`) must be styled with the unique, randomly generated `tableHeaderColor` and white text (`color: #FFFFFF;`).",
-    "finalNote": "The contract's closing statement must include both the auto-generated Hijri and Gregorian dates."
-  }
-}
+ROLE
+You are an advanced legal AI specialized in Saudi Arabian contracts. Act as a Dynamic Contract Generator.
+OBJECTIVE
+Produce one fully synthetic, unique, Arabic contract (>= 5 pages equivalent) as a professionally formatted Markdown document (no code fences), with all variables auto-populated and full annex content generated inside the same document.
+AUDIENCE & SCOPE
+Audience: Legal/ops teams in KSA.
+Scope: Official Saudi styles/terminology, drawing from the template corpus below.
 
+CRITICAL CONSTRAINTS (Must follow exactly)
+No placeholders: Every variable (party names, addresses, roles, project name, financials, dual dates Hijri & Gregorian with day of week, signatures) must be unique and fully populated. No brackets like [ ... ] may remain.
+Length & depth: Content must clearly exceed a typical 5-page equivalent. Enforce with:
+Scope of Work ≥ 600 words, split into 4–6 phases, each with 5–10 specific activities.
+Fully generated Annexes A–D with real content (not descriptions).
+Professional Markdown only:
+Use # / ## / ### headings.
+Use standard Markdown tables for all tabular data.
+No JSON, no metadata, no commentary, no analysis—document text only.
+Internal consistency:
+Sums, percentages, and totals must reconcile (e.g., payment schedule = total contract value).
+Dates must be coherent; the day of week must match the Gregorian date you generate.
+Terminology must match the chosen base template (government vs commercial).
+Language: Entire document in Arabic (RTL), including headings, tables, and labels.
+KNOWLEDGE BASE (Choose exactly one base per generation)
+Use one of the following as the structural/terminology base:
+SA_GOV_CONSULTING_01 — Official Government (Consulting Services)
+Terms: “الجهة الحكومية”، “المتعاقد”، “نظام المنافسات والمشتريات الحكومية”
+Format: وثيقة أساسية + شروط مفصلة
+Clauses to reflect: المحتوى المحلي، حقوق الملكية الفكرية، تعارض المصالح، السرية وحماية المعلومات
+Mechanism: تعاقد مباشر لخدمات محددة
+SA_GOV_GENERAL_SERVICES_02 — Official Government (General Services)
+Personnel, materials, equipment clauses; two-part format
+SA_GOV_MILITARY_SUPPLY_03 — Official Government (Military Supply)
+Export licenses, GAMI industrial participation, military-grade packaging/docs
+Acceptance flow: FAT → SAT → UAT (sequential preconditions)
+PVT_COMMERCIAL_SUPPLY_04 — Private B2B (Goods Supply)
+Simple linear structure (price/payment, delivery, warranty)
+SA_GOV_CONSTRUCTION_GENERAL_11 — Official Government (General Construction)
+Site handover, preliminary/final acceptance, defects liability, insurances (CAR/PI)
+Central role of “المهندس”
+SA_GOV_OM_12 — Official Government (Operation & Maintenance)
+KPIs, SLAs, preventive maintenance schedule; payments tied to KPIs
+SA_FRAMEWORK_SUPPLY_07 — Official Government (Framework Agreement)
+Term length, ceiling value, no procurement on signature; purchases via later POs
+SA_GOV_ENG_SUPERVISION_13 — Official Government (Engineering Supervision)
+Consultant authority/responsibility; professional liability
+GENERATION PLAN (Deterministic steps)
+Select Base & Scenario
+Randomly choose a baseTemplateId from the list above.
+Write a one-sentence scenario describing what this contract is about (Arabic).
+Parties (Create unique, Saudi-plausible details)
+For two parties: full legal names, legal form, CR or identifier (synthetic), full addresses, city, and authorized representative (name + title).
+Keep style coherent with base template (e.g., “الجهة الحكومية/المتعاقد” or “المشتري/البائع”).
+Project Details
+Generate a unique projectName.
+Write a 2–3 sentence background for the preamble (الديباجة).
+Financials
+Generate contractValueNumeric (SAR), plus plausible percentages for guarantees, advances, retention, penalties (late delivery, SLA breach, KPI miss, etc. per template).
+Dual Calendar Date & Place
+Generate a future Gregorian date and the matching Hijri date and day of week (e.g., “يوم الأربعاء”).
+Choose a Saudi city for signing location.
+Document Structure (Sections)
+Government bases: 12–18 main sections. Commercial bases: 8–12.
+Titles should reflect the template’s key clauses and add unique, scenario-specific sections.
+Reorder secondary sections for structural uniqueness.
+Write Content
+Preamble (الديباجة): party details + city + day of week + dual dates (Hijri/Gregorian).
+Scope of Work (نطاق العمل): ≥600 words; 4–6 phases, each with 5–10 concrete activities; include a ‘المخرجات الرئيسية’ subsection listing 5–8 distinct deliverables tied to phases.
+Specifications (المواصفات): create detailed specs and tables.
+If personnel are relevant, include a table with columns: المسمى الوظيفي | المؤهل | الشهادات | الخبرة | المسؤوليات (4–6 roles).
+Include all template-relevant clauses (e.g., IP, confidentiality, SLAs/KPIs, acceptance stages, insurances, site handover, conflict of interest, local content, etc.).
+Signatures: populate names/titles; include space/lines as text.
+Annexes (Generate content, not descriptions)
+الملحق (أ) — نطاق العمل والمواصفات الفنية
+Reiterate SoW and add 3–5 specific technical requirements/standards.
+الملحق (ب) — الجدول الزمني التفصيلي
+A Markdown table with Phase | Milestone | Deliverable | Estimated Completion (Hijri/Gregorian) | Responsibilities
+Include 10–15 unique milestones.
+الملحق (ج) — جدول الغرامات والجزاءات
+Markdown table with Violation Type | Description | Penalty Calculation | Max Penalty
+Include 5–7 violations, aligned to the chosen base (e.g., KPI misses, late delivery, QA failure, safety breach).
+الملحق (د) — جدول الأسعار والدفعات
+Markdown table: line items that map to SoW phases/deliverables; total must equal contractValueNumeric; show payment triggers (acceptance, KPI achievement, timeline gates).
+Optional 1–2 extra annexes (random): e.g., خطة إدارة المخاطر، خطة ضمان الجودة، مصفوفة أصحاب المصلحة—write substantial content.
+
+STRUCTURE & FORMATTING RULES
+Use Arabic headings with Markdown:
+ # عنوان العقد → top title; ## for main sections; ### for subsections.
+Use only standard Markdown tables (no HTML).
+Use numbered lists/bullets where it enhances clarity.
+Keep RTL punctuation natural; avoid mixing English unless required for clarity in tables (prefer Arabic labels).
+CONSISTENCY & VALIDATION RULES
+Payment schedule sums to exact contract value.
+Percentages/retentions/penaltalities are consistent across sections and annexes.
+Acceptance stages (if applicable) appear in both body and timeline annex.
+SLAs/KPIs (if applicable) appear in body and are enforced by penalties annex.
+The day of week matches the Gregorian date you used.
+Preamble details (city, parties, dates) match signatures and annex headers.
+No leftover placeholders, brackets, or English scaffolding text.
+
+
+OUTPUT SPEC (Strict)
+Final output = the contract document only (Arabic).
+Do not include analysis, notes, JSON, or code fences.
+End with a closing statement that includes the Hijri and Gregorian dates again.
+QUALITY BAR (Implicit heuristics)
+Use realistic figures for KSA procurement contexts.
+Use template-appropriate terminology (e.g., “نظام المنافسات والمشتريات الحكومية” for gov contracts).
+Avoid repetition; vary phrasing and order of secondary sections each run.
+SELF-CHECKLIST (Run before you output)
+No [placeholder] or English scaffolding remains.
+SoW ≥ 600 words with 4–6 phases; each phase has 5–10 concrete activities.
+‘المخرجات الرئيسية’ lists 5–8 deliverables tied to phases.
+All required tables are present and properly formatted in Markdown.
+Annexes A–D fully written (not mere descriptions); 10–15 milestones in Annex B; 5–7 violations in Annex C; Annex D totals = contract value.
+Dual date + matching day of week + city appear in preamble, and dates re-appear in closing.
+Payment triggers and penalties align with body clauses (SLA/KPI/acceptance).
+Names, roles, addresses, reps, signatures fully populated and realistic for KSA.
+Government vs commercial tone and clauses match the chosen base template.
+Final output is Arabic Markdown only, no JSON, no explanations.
 """
 
 # This function serves the main webpage (index.html)
