@@ -3,53 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Contract Generator</title>
+    <title>Professional AI Contract Generator</title>
     <style>
+        /* --- Basic Setup & Typography --- */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            max-width: 800px;
-            margin: 40px auto;
-            padding: 20px;
-            background-color: #f9fafb;
-            color: #111827;
+            background-color: #f8f9fa; /* Light grey background */
+            color: #212529; /* Darker text for readability */
+            margin: 0;
+            padding: 2rem;
         }
-        h1 { color: #1f2937; }
-        button {
-            background-color: #4f46e5;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            font-size: 1.1em;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        button:disabled {
-            background-color: #a5b4fc;
-            cursor: not-allowed;
-        }
-        button:hover:not(:disabled) { background-color: #4338ca; }
-        #output-container {
-            margin-top: 30px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 25px;
+
+        /* --- Main Content Container --- */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
             background-color: #ffffff;
-            white-space: pre-wrap; /* Preserves formatting like line breaks */
+            padding: 2rem 3rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e9ecef;
+        }
+
+        h1 {
+            font-size: 2.25rem;
+            color: #111827;
+            border-bottom: 1px solid #e9ecef;
+            padding-bottom: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        p {
+            font-size: 1.1rem;
+            color: #495057;
             line-height: 1.6;
         }
-        .hidden { display: none; }
+
+        /* --- The Button --- */
+        #generateBtn {
+            background-image: linear-gradient(to right, #4f46e5, #6366f1);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(79, 70, 229, 0.2);
+            margin-top: 1rem;
+        }
+
+        #generateBtn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 10px rgba(79, 70, 229, 0.3);
+        }
+
+        #generateBtn:disabled {
+            background-image: linear-gradient(to right, #a5b4fc, #c7d2fe);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        
+        /* --- The Output Frame (This is the key fix) --- */
+        #output-container {
+            margin-top: 2.5rem;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            
+            /* Define a maximum height and enable scrolling */
+            max-height: 70vh; /* 70% of the viewport height */
+            overflow-y: auto; /* Show a vertical scrollbar ONLY when needed */
+        }
+
+        /* --- The Text Inside the Frame --- */
+        #contractText {
+            padding: 1.5rem 2rem;
+            color: #343a40;
+            font-family: 'Courier New', Courier, monospace;
+            line-height: 1.7;
+            white-space: pre-wrap;   /* Preserves line breaks and wraps long text */
+            word-wrap: break-word;   /* Breaks long unbreakable words */
+        }
+        
+        #statusText {
+            padding: 1.5rem 2rem;
+            font-style: italic;
+            color: #6c757d;
+        }
+        
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
-    <h1>AI Contract Generator</h1>
-    <p>Click the button below to generate a standard Non-Disclosure Agreement.</p>
 
-    <button id="generateBtn">✨ Generate Contract</button>
+    <div class="container">
+        <h1>AI Contract Generator</h1>
+        <p>Generate a professional-grade legal document with a single click. The output will appear in the frame below.</p>
 
-    <div id="output-container" class="hidden">
-        <p id="statusText">Generating, please wait...</p>
-        <pre id="contractText"></pre>
+        <button id="generateBtn">✨ Generate Contract</button>
+
+        <div id="output-container" class="hidden">
+            <p id="statusText">Building your contract... This may take a moment.</p>
+            <pre id="contractText"></pre>
+        </div>
     </div>
 
     <script>
@@ -61,10 +121,9 @@
 
             // --- Show loading state ---
             button.disabled = true;
-            button.textContent = 'Generating...';
+            button.innerHTML = '🤖 Generating...'; // Use innerHTML to allow emojis
             outputContainer.classList.remove('hidden');
             statusText.style.display = 'block';
-            statusText.textContent = '🤖 Generating, please wait...';
             contractText.textContent = '';
 
             try {
@@ -73,10 +132,6 @@
                     method: 'POST',
                 });
 
-                if (!response.ok) {
-                    throw new Error(`Server error: ${response.statusText}`);
-                }
-
                 const data = await response.json();
 
                 // --- Display the result ---
@@ -84,17 +139,17 @@
                 if (data.contract_text) {
                     contractText.textContent = data.contract_text;
                 } else {
-                    contractText.textContent = `An error occurred: ${data.error}`;
+                    contractText.textContent = `An error occurred: ${data.error || 'Unknown error'}`;
                 }
 
             } catch (error) {
                 console.error('Fetch Error:', error);
                 statusText.style.display = 'none';
-                contractText.textContent = 'Sorry, a network error occurred. Please check your connection and try again.';
+                contractText.textContent = 'Sorry, a network error occurred. Please try again.';
             } finally {
                 // --- Reset button ---
                 button.disabled = false;
-                button.textContent = '✨ Generate Another Contract';
+                button.innerHTML = '✨ Generate Another Contract';
             }
         });
     </script>
