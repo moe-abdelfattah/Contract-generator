@@ -11,7 +11,7 @@ app = Flask(__name__)
 # export GOOGLE_API_KEY='your_google_api_key_here'
 try:
     genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
-    model = genai.GenerativeModel('gemini-2.5-flash')
+    model = genai.GenerativeModel('gemini-1.5-flash')
 except KeyError:
     print("🔴 Critical Error: GOOGLE_API_KEY environment variable not set.")
     model = None
